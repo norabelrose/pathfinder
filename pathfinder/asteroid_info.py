@@ -63,19 +63,6 @@ def get_asteroid_info(cache_file_name: str = 'jpl-asteriod-info.csv', *, force_r
     return _asteroid_info
 
 
-def get_close_approaches(spkid: int, planet: str) -> dict:
-    response = requests.get('https://ssd-api.jpl.nasa.gov/sbdb.api', params={
-        'spk': spkid,
-        'ca-data': True,
-        'ca-body': planet,
-        'ca-time': 'both',
-        'ca-tunc': 'both'
-    })
-    response.raise_for_status()
-
-    return response.json()
-
-
 MARS_APHELION = 1.666       # 249_200_000
 MARS_PERIHELION = 1.382     # 206_700_000
 
@@ -88,3 +75,24 @@ def get_mars_crossers():
 def search_asteroids_by_name(search_query: str) -> pd.DataFrame:
     info = get_asteroid_info()
     return info.loc[info.full_name.str.contains(search_query, case=False)]
+
+
+def get_asteroid_as_pk_planet(name: str):
+    from .constants import current_epoch
+    import pykep as pk
+
+    df = search_asteroids_by_name(name)
+    return [
+        pk.planet.keplerian(
+            current_epoch(),
+            (
+                float(row['a']) * METERS_PER_AU,
+                float(row['e']),
+                float(row['i']),
+                float(row['om']),
+                float(row['w']),
+                float(row['ma'])
+            )
+        )
+        for idx, row in df.iterrows()
+    ]
