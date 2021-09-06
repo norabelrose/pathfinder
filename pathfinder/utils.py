@@ -1,19 +1,22 @@
-from datetime import date
-import time
+import jax
+import jax.numpy as jnp
+from jax.numpy.linalg import norm
 
-planets = ['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune']
 
-# Convert a Unix timestamp to Modified Julian date, epoch 2000 format.
-# def unix_to_mjd2000(unix: float):
-#     return unix * pk.SEC2DAY - 10957.0
-# 
-# # Convert an MJD2000 date to a Unix timestamp
-# def mjd2000_to_unix(mjd2000: float):
-#     return mjd2000 * pk.DAY2SEC + 10957.0
-# 
-# # Gets the current time as a pk.epoch object
-# def current_epoch() -> pk.epoch:
-#     return pk.epoch(unix_to_mjd2000(time.time()))
-# 
-# def epoch_to_isoformat(epoch: pk.epoch) -> str:
-#     return date.fromtimestamp(mjd2000_to_unix(epoch.mjd2000)).isoformat()
+# Perform 3D axis-angle rotation using Rodrigues' formula.
+# See https://en.wikipedia.org/wiki/Rodrigues%27_rotation_formula#Statement
+@jax.jit
+def rodrigues_rotate(v, k, theta):
+    return v * jnp.cos(theta) + jnp.cross(k, v) * jnp.sin(theta) + k * k.dot(v) * (1 - jnp.cos(theta))
+
+
+
+# Compute approximate gravitational sphere of influence for a body
+def sphere_of_influence(k, k_minor, r, v):
+    h = jnp.cross(r, v)
+    e = ((v.dot(v) - k / (norm(r))) * r - r.dot(v) * v) / k
+    ecc = norm(e)
+    p = h.dot(h) / k
+    a = p / (1 - (ecc ** 2))
+
+    return a * (k_minor / k) ** (2 / 5)

@@ -1,3 +1,6 @@
 astroquery
+jax
+poliastro
+pytest
 requests
 torchdiffeq
